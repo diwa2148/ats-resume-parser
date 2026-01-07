@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALMA ATS | Intelligence Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.8s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .tab-content {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .drop-zone--active {
+            border-color: #3b82f6 !important;
+            background: rgba(59, 130, 246, 0.05) !important;
+        }
+
+        .kanban-card:hover, .candidate-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eff6ff', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+                        dark: { 800: '#1f2937', 900: '#111827', 950: '#030712' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 dark:bg-dark-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300">
+        <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-black italic">A</div>
+                <span class="font-black text-xl tracking-tight sidebar-text">ALMA <span class="text-brand-500">ATS</span></span>
+            </div>
+        </div>
+
+        <div class="p-4 sidebar-text">
+            <button onclick="switchTab('scanner', true)" class="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-widest shadow-lg shadow-brand-600/20 active:scale-95">
+                <i data-lucide="zap" class="w-4 h-4"></i> New AI Scan
+            </button>
+        </div>
+
+        <nav class="p-4 space-y-1">
+            <button onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" data-tab="dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="sidebar-text font-medium text-sm">Dashboard</span>
+            </button>
+            <button onclick="switchTab('candidates')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" data-tab="candidates">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span class="sidebar-text font-medium text-sm">Candidates</span>
+            </button>
+            <button onclick="switchTab('pipeline')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" data-tab="pipeline">
+                <i data-lucide="git-pull-request" class="w-5 h-5"></i>
+                <span class="sidebar-text font-medium text-sm">Hiring Pipeline</span>
+            </button>
+            <button onclick="switchTab('interviews')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" data-tab="interviews">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span class="sidebar-text font-medium text-sm">Interviews</span>
+            </button>
+            <button onclick="switchTab('insights')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" data-tab="insights">
+                <i data-lucide="bar-chart-big" class="w-5 h-5"></i>
+                <span class="sidebar-text font-medium text-sm">AI Insights</span>
+            </button>
+        </nav>
+
+        <div class="absolute bottom-0 w-full p-4 border-t border-slate-100 dark:border-slate-800">
+            <button onclick="toggleSidebar()" class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors w-full">
+                <i data-lucide="chevron-left" id="collapse-icon" class="w-5 h-5 transition-transform"></i>
+                <span class="sidebar-text text-sm font-medium">Collapse Menu</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content" class="ml-64 p-4 md:p-8 lg:p-10 transition-all duration-300">
+        
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <i data-lucide="cpu" class="text-white w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black tracking-tight uppercase">Intelligence Hub</h1>
+                        <p class="text-[9px] text-brand-500 uppercase tracking-widest font-bold">Powered by Gemini GenAI</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-brand-500">
+                    <i data-lucide="sun" class="dark:hidden w-5 h-5"></i>
+                    <i data-lucide="moon" class="hidden dark:block w-5 h-5"></i>
+                </button>
+                <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                <div class="flex items-center gap-3 pl-2">
+                    <div class="hidden sm:block text-right">
+                        <p class="text-sm font-bold">Alex Rivera</p>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">Recruiter</p>
+                    </div>
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" class="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white" alt="User">
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Sections -->
+        
+        <!-- 1. DASHBOARD -->
+        <div id="dashboard-section" class="tab-content hidden space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold">Recruitment Analytics</h1>
+                    <p class="text-slate-500 text-sm">Simplified hiring velocity and source distribution.</p>
+                </div>
+                <button onclick="switchTab('scanner', true)" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-all">
+                    <i data-lucide="plus" class="w-4 h-4"></i> New Job Posting
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                    <div><p class="text-sm text-slate-500">Total Applicants</p><p class="text-2xl font-bold mt-1">2,845</p></div>
+                    <div class="p-3 bg-brand-50 dark:bg-brand-900/20 text-brand-600 rounded-xl"><i data-lucide="users"></i></div>
+                </div>
+                <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                    <div><p class="text-sm text-slate-500">Active Roles</p><p class="text-2xl font-bold mt-1">38</p></div>
+                    <div class="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded-xl"><i data-lucide="briefcase"></i></div>
+                </div>
+                <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                    <div><p class="text-sm text-slate-500">Avg. Match Score</p><p class="text-2xl font-bold mt-1">74%</p></div>
+                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl"><i data-lucide="target"></i></div>
+                </div>
+                <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                    <div><p class="text-sm text-slate-500">Interviews Held</p><p class="text-2xl font-bold mt-1">156</p></div>
+                    <div class="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-xl"><i data-lucide="calendar"></i></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-dark-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <h3 class="font-bold mb-6 text-sm uppercase tracking-widest text-slate-500">Weekly Application Volume</h3>
+                    <div class="flex items-end justify-between h-32 gap-2 px-2">
+                        <div class="flex-1 bg-brand-500/20 rounded-t-lg h-[40%]"></div>
+                        <div class="flex-1 bg-brand-500/40 rounded-t-lg h-[60%]"></div>
+                        <div class="flex-1 bg-brand-500/30 rounded-t-lg h-[50%]"></div>
+                        <div class="flex-1 bg-brand-600 rounded-t-lg h-[90%]"></div>
+                        <div class="flex-1 bg-brand-500/80 rounded-t-lg h-[75%]"></div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-dark-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <h3 class="font-bold mb-6 text-sm uppercase tracking-widest text-slate-500">Source Distribution</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between text-xs font-bold"><span>LinkedIn</span><span>45%</span></div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="bg-brand-500 h-full w-[45%]"></div></div>
+                        <div class="flex justify-between text-xs font-bold"><span>Referrals</span><span>30%</span></div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="bg-purple-500 h-full w-[30%]"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. AI SCANNER (MAIN AUDIT PAGE) -->
+        <div id="scanner-section" class="tab-content space-y-6">
+            <div id="inputView" class="max-w-2xl mx-auto space-y-8 py-12">
+                <div class="text-center space-y-2 mb-8">
+                    <h2 class="text-3xl font-black">Smart AI Resume Audit</h2>
+                    <p class="text-slate-500 text-sm">Upload a PDF to generate a comprehensive analysis including Pros, Cons, and Core Functionalities.</p>
+                </div>
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Candidate Resume (PDF)</label>
+                    <div id="dropZone" class="h-80 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center gap-4 hover:border-brand-500/50 hover:bg-brand-500/5 transition-all cursor-pointer group">
+                        <div class="w-20 h-20 rounded-full bg-brand-500/10 flex items-center justify-center pointer-events-none">
+                            <i data-lucide="upload-cloud" class="text-brand-500 w-10 h-10"></i>
+                        </div>
+                        <div class="text-center pointer-events-none">
+                            <p class="text-base font-bold" id="fileName">Drop resume here</p>
+                            <p class="text-xs text-slate-500 mt-1">PDF format supported up to 10MB</p>
+                        </div>
+                        <input type="file" id="fileInput" class="hidden" accept=".pdf">
+                    </div>
+                </div>
+                <div class="flex justify-center pt-6">
+                    <button onclick="startAnalysis()" class="px-16 py-4 bg-brand-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-brand-600/20 active:scale-95 transition-all">
+                        Begin AI Analysis
+                    </button>
+                </div>
+            </div>
+
+            <div id="loadingView" class="hidden flex flex-col items-center justify-center h-full space-y-6 py-20">
+                <div class="relative w-24 h-24">
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-800"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-brand-500 border-t-transparent animate-spin"></div>
+                </div>
+                <h3 class="text-xl font-black">Extracting AI Intelligence...</h3>
+            </div>
+
+            <div id="resultsView" class="hidden max-w-6xl mx-auto space-y-6 pb-12">
+                <!-- Summary Header -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase mb-4">Final Resume Score</h3>
+                        <div class="relative w-32 h-32 flex items-center justify-center">
+                            <svg class="w-full h-full" viewBox="0 0 100 100">
+                                <circle class="text-slate-100 dark:text-slate-800 stroke-current" stroke-width="8" fill="transparent" r="40" cx="50" cy="50" />
+                                <circle id="scoreCircle" class="text-brand-500 stroke-current progress-ring__circle" stroke-width="8" stroke-linecap="round" fill="transparent" r="40" cx="50" cy="50" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+                            </svg>
+                            <span class="absolute text-3xl font-black" id="scoreValue">0%</span>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase mb-2">Role Alignment</h3>
+                        <div class="text-5xl font-black text-indigo-500">92%</div>
+                        <p class="text-[9px] font-bold text-slate-400 mt-2">Sr. Frontend Engineer</p>
+                    </div>
+                    <div class="lg:col-span-2 bg-brand-500/10 border border-brand-500/20 rounded-3xl p-8 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="check-circle-2" class="text-brand-500 w-5 h-5"></i>
+                            <h3 class="text-sm font-black uppercase">Gemini Recommendation</h3>
+                        </div>
+                        <div class="text-2xl font-black mb-3">Strong Candidate</div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Highly proficient technical expertise. Recommended for immediate interview. Fits the core requirements with 94% accuracy in functional tasks.</p>
+                    </div>
+                </div>
+
+                <!-- Deep Analysis Content -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Pros & Cons -->
+                    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-6 shadow-sm">
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-widest text-emerald-500 mb-4 flex items-center gap-2">
+                                <i data-lucide="trending-up" class="w-4 h-4"></i> Analysis Pros
+                            </h4>
+                            <ul class="text-xs space-y-3 list-disc ml-4 text-slate-600 dark:text-slate-400">
+                                <li>Deep knowledge of modern React patterns & Hooks.</li>
+                                <li>Proven experience in building scalable UI component libraries.</li>
+                                <li>Strong unit & integration testing record (Jest/Cypress).</li>
+                                <li>Excellent problem-solving approach shown in project descriptions.</li>
+                            </ul>
+                        </div>
+                        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <h4 class="text-xs font-black uppercase tracking-widest text-rose-500 mb-4 flex items-center gap-2">
+                                <i data-lucide="trending-down" class="w-4 h-4"></i> Analysis Cons
+                            </h4>
+                            <ul class="text-xs space-y-3 list-disc ml-4 text-slate-600 dark:text-slate-400">
+                                <li>Minimal mention of backend integration (Node.js/GraphQL).</li>
+                                <li>Lack of recent cloud deployment experience (AWS/Vercel).</li>
+                                <li>Resume format could be more "ATS-parsable" for older systems.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Skill Set & Core Functionalities -->
+                    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-6 shadow-sm">
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-widest text-brand-500 mb-4 flex items-center gap-2">
+                                <i data-lucide="cpu" class="w-4 h-4"></i> Core Skills Set
+                            </h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] rounded-lg font-black uppercase">React 18+</span>
+                                <span class="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] rounded-lg font-black uppercase">TypeScript</span>
+                                <span class="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] rounded-lg font-black uppercase">Tailwind CSS</span>
+                                <span class="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] rounded-lg font-black uppercase">Redux Toolkit</span>
+                                <span class="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] rounded-lg font-black uppercase">Webpack</span>
+                                <span class="px-3 py-1 bg-brand-500/10 text-brand-600 text-[10px] rounded-lg font-black uppercase">TDD</span>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <h4 class="text-xs font-black uppercase tracking-widest text-indigo-500 mb-4 flex items-center gap-2">
+                                <i data-lucide="layers" class="w-4 h-4"></i> Core Functionalities
+                            </h4>
+                            <div class="space-y-4">
+                                <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+                                    <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Architecture</p>
+                                    <p class="text-xs font-bold">Expert in Component-Driven Design & Micro-frontends.</p>
+                                </div>
+                                <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+                                    <p class="text-[10px] font-black uppercase text-slate-400 mb-1">State Management</p>
+                                    <p class="text-xs font-bold">Advanced global state handling & query caching.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Market Insights -->
+                    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col justify-between shadow-sm">
+                        <div class="space-y-6">
+                            <h4 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Market Competitiveness</h4>
+                            <div class="space-y-4">
+                                <div class="flex justify-between text-xs"><span>Salary Alignment</span><span class="text-brand-500 font-black">Top 15%</span></div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"><div class="bg-brand-500 h-full w-[85%]"></div></div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex justify-between text-xs"><span>Retention Probability</span><span class="text-indigo-500 font-black">High</span></div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"><div class="bg-indigo-500 h-full w-[90%]"></div></div>
+                            </div>
+                        </div>
+                        <button onclick="switchTab('candidates')" class="mt-6 w-full py-3 bg-slate-900 dark:bg-brand-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest">
+                            Add to Candidates List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. CANDIDATES (FUNCTIONAL SUB-COLUMNS) -->
+        <div id="candidates-section" class="tab-content hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold">Candidate Pool</h1>
+                    <p class="text-slate-500 text-sm">Manage high-potential applicants identified by AI.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="applyFilter()" class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 px-4 py-2 rounded-xl text-xs font-bold uppercase flex items-center gap-2">
+                        <i data-lucide="filter" class="w-4 h-4"></i> Filter
+                    </button>
+                    <button onclick="switchTab('scanner', true)" class="bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add New
+                    </button>
+                </div>
+            </div>
+
+            <!-- Candidate Sub-Tabs -->
+            <div class="flex border-b border-slate-200 dark:border-slate-800 mb-6 overflow-x-auto scrollbar-hide">
+                <button onclick="switchCandidateTab('shortlisted', this)" class="candidate-tab px-6 py-3 border-b-2 border-brand-500 text-brand-500 text-xs font-black uppercase tracking-widest">Shortlisted</button>
+                <button onclick="switchCandidateTab('under-review', this)" class="candidate-tab px-6 py-3 border-transparent text-slate-400 text-xs font-black uppercase tracking-widest hover:text-slate-900 dark:hover:text-white transition-colors">Under Review</button>
+                <button onclick="switchCandidateTab('all', this)" class="candidate-tab px-6 py-3 border-transparent text-slate-400 text-xs font-black uppercase tracking-widest hover:text-slate-900 dark:hover:text-white transition-colors">All Candidates</button>
+                <button onclick="switchCandidateTab('archive', this)" class="candidate-tab px-6 py-3 border-transparent text-slate-400 text-xs font-black uppercase tracking-widest hover:text-slate-900 dark:hover:text-white transition-colors">Archive</button>
+            </div>
+
+            <!-- Candidate Grid -->
+            <div id="candidate-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+
+        <!-- 4. PIPELINE -->
+        <div id="pipeline-section" class="tab-content hidden space-y-6 h-full">
+            <h1 class="text-2xl font-bold">Interactive Pipeline</h1>
+            <div class="flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
+                <div class="min-w-[320px] bg-slate-100/50 dark:bg-dark-900/50 rounded-2xl p-4 flex flex-col gap-4">
+                    <div class="flex items-center justify-between font-bold text-xs uppercase text-slate-500 px-2">
+                        <span><span class="w-2 h-2 rounded-full bg-brand-500 inline-block mr-2"></span> Applied</span>
+                        <span>08</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="kanban-card bg-white dark:bg-dark-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer">
+                            <h5 class="font-bold text-sm">Sarah Jenkins</h5>
+                            <span class="text-[10px] font-black text-emerald-600">98% Match</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="min-w-[320px] bg-slate-100/50 dark:bg-dark-900/50 rounded-2xl p-4 flex flex-col gap-4">
+                    <div class="flex items-center justify-between font-bold text-xs uppercase text-slate-500 px-2">
+                        <span><span class="w-2 h-2 rounded-full bg-purple-500 inline-block mr-2"></span> Interview</span>
+                        <span>03</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. INTERVIEWS -->
+        <div id="interviews-section" class="tab-content hidden space-y-6">
+            <h1 class="text-2xl font-bold">Interview Hub</h1>
+            <div class="bg-white dark:bg-dark-900 p-10 rounded-3xl border border-slate-200 dark:border-slate-800 text-center">
+                <i data-lucide="calendar" class="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4"></i>
+                <p class="text-slate-500 text-sm">No interviews scheduled. Use the scanner to find top talent first.</p>
+            </div>
+        </div>
+
+        <!-- 6. AI INSIGHTS -->
+        <div id="insights-section" class="tab-content hidden space-y-6">
+            <h1 class="text-2xl font-bold">AI Talent Insights</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+                    <h3 class="font-bold text-xs uppercase text-slate-500 mb-6">Market Trends</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between text-xs"><span>React 19 Adoption</span><span class="text-brand-500">+12% Demand</span></div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden"><div class="bg-brand-500 h-full w-[45%]"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-12 flex flex-col md:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 py-8 text-slate-400 text-xs">
+            <span class="flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i> AI Analysis Secured & Confidential</span>
+            <div class="uppercase tracking-widest font-black opacity-50">Powered by Gemini AI 2.5 Preview</div>
+        </footer>
+    </main>
+
+    <!-- Toast UI -->
+    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[200]">
+        <div class="bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold text-[10px] uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+            <i id="toastIcon" data-lucide="check-circle" class="text-emerald-500 w-4 h-4"></i>
+            <span id="toastText">Action Successful</span>
+        </div>
+    </div>
+
+    <script>
+        // Data Store
+        const candidates = [
+            { id: 1, name: 'Sarah Jenkins', role: 'Sr. Frontend Engineer', status: 'shortlisted', match: 98, exp: '8+ Years', initials: 'SJ', color: 'bg-brand-500' },
+            { id: 2, name: 'David Miller', role: 'Product Designer', status: 'shortlisted', match: 92, exp: '5+ Years', initials: 'DM', color: 'bg-indigo-500' },
+            { id: 3, name: 'Michael Chen', role: 'Backend Developer', status: 'under-review', match: 85, exp: '4+ Years', initials: 'MC', color: 'bg-emerald-500' },
+            { id: 4, name: 'Elena Rodriguez', role: 'QA Analyst', status: 'archive', match: 65, exp: '2+ Years', initials: 'ER', color: 'bg-slate-500' }
+        ];
+
+        // Initialization
+        window.onload = () => {
+            lucide.createIcons();
+            switchTab('dashboard'); // Initial Tab
+            renderCandidates('shortlisted');
+        };
+
+        let isSidebarOpen = true;
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+            const texts = document.querySelectorAll('.sidebar-text');
+            const icon = document.getElementById('collapse-icon');
+            isSidebarOpen = !isSidebarOpen;
+            if (isSidebarOpen) {
+                sidebar.style.width = '256px'; main.style.marginLeft = '256px'; icon.style.transform = 'rotate(0deg)';
+                setTimeout(() => texts.forEach(t => t.style.display = 'inline-block'), 100);
+            } else {
+                sidebar.style.width = '80px'; main.style.marginLeft = '80px'; icon.style.transform = 'rotate(180deg)';
+                texts.forEach(t => t.style.display = 'none');
+            }
+        }
+
+        function toggleTheme() { document.documentElement.classList.toggle('dark'); }
+
+        function switchTab(tabId, forceReset = false) {
+            const sections = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.nav-btn');
+            
+            sections.forEach(s => s.classList.add('hidden'));
+            const target = document.getElementById(`${tabId}-section`);
+            if (target) target.classList.remove('hidden');
+
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-slate-500');
+                if (btn.getAttribute('data-tab') === tabId) {
+                    btn.classList.add('bg-brand-600', 'text-white', 'shadow-lg');
+                    btn.classList.remove('text-slate-500');
+                }
+            });
+
+            if (tabId === 'scanner' && forceReset) resetScanner();
+            lucide.createIcons();
+        }
+
+        // Scanner Logic
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        };
+
+        function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                showToast("Please upload a PDF file", "alert-triangle");
+                return;
+            }
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileName').classList.add('text-brand-500');
+            showToast("File Ready for AI Audit");
+        }
+
+        async function startAnalysis() {
+    const fileInput = document.getElementById('fileInput');
+
+    if (!fileInput.files.length) {
+        showToast("No resume selected. Please upload a PDF.", "alert-triangle");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    document.getElementById('inputView').classList.add('hidden');
+    document.getElementById('loadingView').classList.remove('hidden');
+
+    const response = await fetch("/upload", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+
+    document.getElementById('loadingView').classList.add('hidden');
+    document.getElementById('resultsView').classList.remove('hidden');
+
+    animateScore(data.score);
+    showToast("Audit Complete: " + data.recommendation);
+}
+
+
+        function animateScore(target) {
+            const scoreEl = document.getElementById('scoreValue');
+            const circle = document.getElementById('scoreCircle');
+            const circumference = 2 * Math.PI * 40;
+            circle.style.strokeDasharray = circumference;
+            let count = 0;
+            const step = () => {
+                if (count < target) {
+                    count++;
+                    scoreEl.textContent = count + '%';
+                    circle.style.strokeDashoffset = circumference - (count/100)*circumference;
+                    requestAnimationFrame(step);
+                }
+            };
+            step();
+        }
+
+        function resetScanner() {
+            document.getElementById('inputView').classList.remove('hidden');
+            document.getElementById('loadingView').classList.add('hidden');
+            document.getElementById('resultsView').classList.add('hidden');
+            document.getElementById('fileName').textContent = 'Drop resume here';
+            document.getElementById('fileName').classList.remove('text-brand-500');
+            fileInput.value = ""; // Clear file input
+        }
+
+        // Candidates Sub-Tab Filtering
+        function switchCandidateTab(status, el) {
+            // Update Tab UI
+            document.querySelectorAll('.candidate-tab').forEach(btn => {
+                btn.classList.remove('border-brand-500', 'text-brand-500');
+                btn.classList.add('border-transparent', 'text-slate-400');
+            });
+            el.classList.add('border-brand-500', 'text-brand-500');
+            el.classList.remove('border-transparent', 'text-slate-400');
+
+            renderCandidates(status);
+        }
+
+        function renderCandidates(filterStatus) {
+            const grid = document.getElementById('candidate-grid');
+            grid.innerHTML = "";
+
+            const filtered = filterStatus === 'all' 
+                ? candidates 
+                : candidates.filter(c => c.status === filterStatus);
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-20 text-center text-slate-500">No candidates found in this category.</div>`;
+                return;
+            }
+
+            filtered.forEach(c => {
+                const card = `
+                    <div class="candidate-card bg-white dark:bg-dark-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 transition-all cursor-pointer">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="flex gap-4">
+                                <div class="w-12 h-12 ${c.color} rounded-2xl flex items-center justify-center text-white font-black italic">${c.initials}</div>
+                                <div>
+                                    <h4 class="font-bold text-sm">${c.name}</h4>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase">${c.role}</p>
+                                </div>
+                            </div>
+                            <div class="bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded text-[10px] font-black uppercase">${c.match}% Match</div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+                                <span class="text-[8px] text-slate-400 uppercase font-bold">Experience</span>
+                                <p class="text-[10px] font-bold">${c.exp}</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+                                <span class="text-[8px] text-slate-400 uppercase font-bold">Status</span>
+                                <p class="text-[10px] font-bold capitalize">${c.status.replace('-', ' ')}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="switchTab('scanner')" class="flex-1 bg-brand-600 text-white py-2 rounded-xl text-[10px] font-black uppercase">View Audit</button>
+                            <button class="p-2 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="mail" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+            lucide.createIcons();
+        }
+
+        function applyFilter() {
+            showToast("Opening Advanced Filters...");
+        }
+
+        function showToast(txt, icon = "check-circle") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastText').textContent = txt;
+            document.getElementById('toastIcon').setAttribute('data-lucide', icon);
+            toast.classList.remove('hidden');
+            lucide.createIcons();
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+    </script>
+</body>
+</html>
